@@ -30,10 +30,23 @@ html, body, [class*="css"], .stApp {
 
 .block-container {
     max-width: 880px !important;
-    padding: 24px 28px 80px !important;
+    padding: 56px 28px 80px !important;
     margin: 0 auto !important;
 }
 
+[data-testid="stMarkdownContainer"] * {
+    text-align: right !important;
+}
+
+div[data-testid="stRadio"],
+div[data-testid="stElementContainer"]:has(div[data-testid="stRadio"]) {
+    width: 100% !important;
+    max-width: 100% !important;
+    flex-grow: 1 !important;
+}
+div[data-testid="stRadio"] > div:first-child {
+    width: 100% !important;
+}
 div[data-testid="stRadio"] > div {
     display: grid !important;
     grid-template-columns: 1fr 1fr !important;
@@ -51,9 +64,6 @@ div[data-testid="stRadio"] label {
 div[data-testid="stRadio"] label:has(input:checked) {
     border-color: #15876a !important;
     background: #f1f8f4 !important;
-}
-div[data-testid="stRadio"] {
-    width: 100% !important;
 }
 
 .stButton > button {
@@ -137,12 +147,12 @@ div[data-testid="stRadio"] {
 
 components.html(
     "<script>"
-    "var s=window.parent.document.createElement('style');"
+    "var s=window.parent.document.getElementById('gradify-css')"
+    "||window.parent.document.createElement('style');"
     "s.id='gradify-css';"
-    "if(!window.parent.document.getElementById('gradify-css')){"
     "s.textContent=" + repr(_CSS) + ";"
-    "window.parent.document.head.appendChild(s);"
-    "}</script>",
+    "if(!s.parentElement)window.parent.document.head.appendChild(s);"
+    "</script>",
     height=0,
     scrolling=False,
 )
@@ -217,12 +227,10 @@ def _card_end():
 def _screen_setup():
     # Welcome
     st.markdown(
-        '<div dir="rtl"><h1 style="font-size:25px;font-weight:800;margin:0 0 6px;'
-        'letter-spacing:-0.4px;color:#243029;"> </h1>'
         '<h1 style="font-size:25px;font-weight:800;margin:0 0 6px;'
         'letter-spacing:-0.4px;color:#243029;">שלום, בואו נבדוק את התעודות 👋</h1>'
         '<p style="margin:0 0 24px;color:#6f7d74;font-size:15px;line-height:1.5;">'
-        'העלו את קובץ הציונים של הכיתה ו-Gradify יאתר שגיאות חישוב והערות לא תקינות.</p></dir>',
+        'העלו את קובץ הציונים של הכיתה ו-Gradify יאתר שגיאות חישוב והערות לא תקינות — לפני ההגשה.</p>',
         unsafe_allow_html=True,
     )
 
