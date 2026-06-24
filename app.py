@@ -230,7 +230,7 @@ def _screen_setup():
         '<h1 style="font-size:25px;font-weight:800;margin:0 0 6px;'
         'letter-spacing:-0.4px;color:#243029;">שלום, בואו נבדוק את התעודות 👋</h1>'
         '<p style="margin:0 0 24px;color:#6f7d74;font-size:15px;line-height:1.5;">'
-        'העלו את קובץ הציונים של הכיתה ו-Gradify יאתר שגיאות חישוב והערות לא תקינות — לפני ההגשה.</p>',
+        'העלו את קובץ הציונים של הכיתה ו-Gradify יאתר שגיאות חישוב והערות לא תקינות.</p>',
         unsafe_allow_html=True,
     )
 
