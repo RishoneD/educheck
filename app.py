@@ -2,14 +2,13 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 from core.bank_notes_loader import load_bank_notes
-from core.parser import parse_excel, parse_col_header
-from core.subject_detector import detect_file_type, get_active_cols, subject_semesters
-from core.student_builder import build_students
+from core.parser import (parse_tsv, detect_file_type,
+                         get_active_subjects, build_students_tsv)
 from core.validators import run_all_validations
 from output.report_builder import render_by_teacher, render_by_student
 from output.excel_export import build_excel_report
 
-APP_VERSION = "0.2"
+APP_VERSION = "0.3"
 TYPE_LABELS = {'semester': 'תקופתי מחצית', 'annual': 'תקופתי שנתי'}
 
 # ── Page config ───────────────────────────────────────────────────────────────
@@ -248,10 +247,10 @@ def _screen_setup():
     _card_end()
 
     # Step 2 — upload
-    _step_card(2, 'העלאת קובץ Excel')
+    _step_card(2, 'העלאת קובץ מקור נתונים')
     uploaded = st.file_uploader(
-        label='קובץ Excel',
-        type=['xlsx', 'xls'],
+        label='קובץ TSV',
+        type=['txt', 'tsv', 'csv'],
         label_visibility='collapsed',
     )
     st.markdown(
@@ -270,7 +269,7 @@ def _screen_setup():
     # Parse file
     file_bytes = uploaded.read()
     try:
-        df, class_name = parse_excel(file_bytes)
+        df, class_name = parse_tsv(file_bytes)
     except Exception as e:
         st.error(f'שגיאה בקריאת הקובץ: {e}')
         return
@@ -287,13 +286,13 @@ def _screen_setup():
         )
         return
 
-    active_cols  = get_active_cols(df)
-    num_students = df['שם התלמיד'].dropna().nunique()
-    teachers     = {parse_col_header(c)[1] for c in active_cols}
+    subjects     = get_active_subjects(df)
+    num_students = df['שם_תלמיד'].dropna().nunique() if 'שם_תלמיד' in df.columns else 0
+    teachers     = {s['teacher'] for s in subjects}
 
     st.session_state.upload_cache = {
-        'df': df, 'class_name': class_name, 'active_cols': active_cols,
-        'num_students': num_students, 'num_subjects': len(active_cols),
+        'df': df, 'class_name': class_name, 'subjects': subjects,
+        'num_students': num_students, 'num_subjects': len(subjects),
         'num_teachers': len(teachers), 'detected': detected,
     }
 
@@ -314,7 +313,7 @@ def _screen_setup():
         f'<span style="width:1px;height:22px;background:#d4e4f1;"></span>'
         f'<span style="font-size:14.5px;color:#3a4742;"><b>{num_students}</b> תלמידים</span>'
         f'<span style="width:1px;height:22px;background:#d4e4f1;"></span>'
-        f'<span style="font-size:14.5px;color:#3a4742;"><b>{len(active_cols)}</b> מקצועות</span>'
+        f'<span style="font-size:14.5px;color:#3a4742;"><b>{len(subjects)}</b> מקצועות</span>'
         f'<span style="width:1px;height:22px;background:#d4e4f1;"></span>'
         f'<span style="font-size:14.5px;color:#3a4742;"><b>{len(teachers)}</b> מורים</span>'
         f'</div>'
@@ -327,10 +326,12 @@ def _screen_setup():
     if st.button('🔍 הרץ בדיקה', type='primary', use_container_width=True):
         cache = st.session_state.upload_cache
         with st.spinner('בודק את הציונים…'):
-            students      = build_students(cache['df'], cache['active_cols'])
-            col_semesters = {c: subject_semesters(cache['df'], c) for c in cache['active_cols']}
-            findings      = run_all_validations(
-                students, cache['active_cols'], col_semesters, cache['detected'], bank_rules
+            students, col_semesters = build_students_tsv(
+                cache['df'], cache['subjects'], cache['detected']
+            )
+            col_keys = [s['col_key'] for s in cache['subjects']]
+            findings = run_all_validations(
+                students, col_keys, col_semesters, cache['detected'], bank_rules
             )
             excel_bytes = build_excel_report(findings, cache['class_name'])
 
