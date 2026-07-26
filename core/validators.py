@@ -56,23 +56,6 @@ def run_all_validations(students: dict, active_cols: list[str],
             annual = _safe_num(data.get('annual'))
             bank   = data.get('bank')
 
-            # --- ציונות חסרות ---
-            if file_type == 'semester':
-                if sem_a is None:
-                    add('⚠️', student, col, subject, teacher,
-                        'ציון מחצית א\' חסר — יש לבדוק אם מוצדק')
-
-            elif file_type == 'annual':
-                if has_a and sem_a is None:
-                    add('⚠️', student, col, subject, teacher,
-                        'ציון מחצית א\' חסר — יש לבדוק אם מוצדק')
-                if has_b and sem_b is None:
-                    add('⚠️', student, col, subject, teacher,
-                        'ציון מחצית ב\' חסר — יש לבדוק אם מוצדק')
-                if annual is None:
-                    add('⚠️', student, col, subject, teacher,
-                        'ציון שנתי חסר — יש לבדוק אם מוצדק')
-
             # --- ציון חריג (0–10) ---
             for label, score in [('מחצית א\'', sem_a), ('מחצית ב\'', sem_b), ('שנתי', annual)]:
                 if score is not None and score <= 10:
@@ -116,7 +99,6 @@ def _validate_bank_note(bank_val, data, sem_a, sem_b, has_a, has_b,
                         file_type, rules, add_fn):
     """בודק הערת בנק עבור תלמיד ומקצוע נתונים."""
     if bank_val is None or str(bank_val).strip() in ('', 'nan', 'None'):
-        add_fn('⚠️', 'הערת בנק חסרה — יש להוסיף הערה')
         return
 
     code = extract_bank_code(bank_val)
