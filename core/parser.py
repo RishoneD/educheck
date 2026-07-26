@@ -1,5 +1,6 @@
 import re
 import io
+import difflib
 import pandas as pd
 
 
@@ -20,6 +21,37 @@ def extract_bank_code(text) -> int | None:
     """מחלץ קוד מספרי מהערת בנק כגון: 'בקיא [קוד: 63]'."""
     m = re.search(r'\[קוד:\s*(\d+)\]', str(text))
     return int(m.group(1)) if m else None
+
+
+def find_bank_code_by_text(bank_text: str, bank_rules: dict) -> int | None:
+    """מאתר קוד הערת בנק לפי התאמת טקסט (תומך בניסוח זכר ונקבה).
+
+    משתמש ב-difflib.SequenceMatcher — מחזיר את הקוד בעל ההתאמה הגבוהה ביותר
+    מעל סף של 0.75, או None אם לא נמצא.
+    """
+    if not bank_text or not bank_rules:
+        return None
+    text = bank_text.strip()
+    best_code, best_ratio = None, 0.0
+    for code, rule in bank_rules.items():
+        rule_text = str(rule.get('text', '')).strip()
+        if not rule_text:
+            continue
+        ratio = difflib.SequenceMatcher(None, text, rule_text).ratio()
+        if ratio > best_ratio:
+            best_ratio = ratio
+            best_code = code
+    return best_code if best_ratio >= 0.75 else None
+
+
+def inject_bank_code(bank_text: str, bank_rules: dict) -> str:
+    """מחדיר קוד להערת בנק אם לא קיים. מחזיר את הטקסט המועשר."""
+    if not bank_text or '[קוד:' in bank_text:
+        return bank_text
+    code = find_bank_code_by_text(bank_text, bank_rules)
+    if code is not None:
+        return f'{bank_text} [קוד: {code}]'
+    return bank_text
 
 
 # ── TSV (מאשב) ────────────────────────────────────────────────────────────────
@@ -76,7 +108,7 @@ def get_active_subjects(df: pd.DataFrame) -> list[dict]:
 
 
 def build_students_tsv(df: pd.DataFrame, subjects: list[dict],
-                       file_type: str) -> tuple[dict, dict]:
+                       file_type: str, bank_rules: dict | None = None) -> tuple[dict, dict]:
     """בונה students ו-col_semesters מ-DataFrame TSV.
 
     students[שם_תלמיד][col_key] = {sem_a, sem_b, annual, bank}
@@ -117,7 +149,7 @@ def build_students_tsv(df: pd.DataFrame, subjects: list[dict],
                             pass
                 elif '01' in shem and 'בנק' in shem:
                     if pd.notna(val):
-                        data['bank_a'] = str(val).strip()
+                        data['bank_a'] = inject_bank_code(str(val).strip(), bank_rules or {})
 
             # מחצית ב' + שנתי (שנתי בלבד)
             if file_type == 'annual':
@@ -137,7 +169,7 @@ def build_students_tsv(df: pd.DataFrame, subjects: list[dict],
                                 pass
                     elif '01' in shem and 'בנק' in shem:
                         if pd.notna(val):
-                            data['bank_b'] = str(val).strip()
+                            data['bank_b'] = inject_bank_code(str(val).strip(), bank_rules or {})
 
                 ac = f'ג_ציון{idx}_1'
                 if ac in df.columns:
