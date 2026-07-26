@@ -24,10 +24,12 @@ def extract_bank_code(text) -> int | None:
 
 
 def find_bank_code_by_text(bank_text: str, bank_rules: dict) -> int | None:
-    """מאתר קוד הערת בנק לפי התאמת טקסט (תומך בניסוח זכר ונקבה).
+    """מאתר קוד הערת בנק לפי התאמת טקסט.
 
-    משתמש ב-difflib.SequenceMatcher — מחזיר את הקוד בעל ההתאמה הגבוהה ביותר
-    מעל סף של 0.75, או None אם לא נמצא.
+    מטפל ב:
+    - הערות מורחבות: ה-TSV מכיל טקסט נוסף אחרי הנוסח הבסיסי (בודק prefix)
+    - שינויי מגדר: מגיע/מגיעה וכו'
+    - הערות קטועות: ה-TSV קצר מהנוסח בבנק
     """
     if not bank_text or not bank_rules:
         return None
@@ -35,9 +37,17 @@ def find_bank_code_by_text(bank_text: str, bank_rules: dict) -> int | None:
     best_code, best_ratio = None, 0.0
     for code, rule in bank_rules.items():
         rule_text = str(rule.get('text', '')).strip()
-        if not rule_text:
+        if not rule_text or rule_text.startswith('*'):
             continue
-        ratio = difflib.SequenceMatcher(None, text, rule_text).ratio()
+
+        # השוואת rule_text מול תחילת ה-text (prefix) — מטפל בהערות מורחבות
+        prefix = text[:len(rule_text)] if len(text) >= len(rule_text) else text
+        prefix_ratio = difflib.SequenceMatcher(None, rule_text, prefix).ratio()
+
+        # השוואה מלאה — מטפל בהערות קצרות/קטועות
+        full_ratio = difflib.SequenceMatcher(None, text, rule_text).ratio()
+
+        ratio = max(prefix_ratio, full_ratio)
         if ratio > best_ratio:
             best_ratio = ratio
             best_code = code
