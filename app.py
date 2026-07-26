@@ -327,7 +327,7 @@ def _screen_setup():
         cache = st.session_state.upload_cache
         with st.spinner('בודק את הציונים…'):
             students, col_semesters = build_students_tsv(
-                cache['df'], cache['subjects'], cache['detected']
+                cache['df'], cache['subjects'], cache['detected'], bank_rules
             )
             col_keys = [s['col_key'] for s in cache['subjects']]
             findings = run_all_validations(
