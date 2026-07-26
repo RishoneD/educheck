@@ -56,9 +56,9 @@ def run_all_validations(students: dict, active_cols: list[str],
             annual = _safe_num(data.get('annual'))
             bank   = data.get('bank')
 
-            # --- ציון חריג (0–10) ---
+            # --- ציון חריג (1–10, לא כולל 0 שמייצג היעדר ציון) ---
             for label, score in [('מחצית א\'', sem_a), ('מחצית ב\'', sem_b), ('שנתי', annual)]:
-                if score is not None and score <= 10:
+                if score is not None and 0 < score <= 10:
                     add('⚠️', student, col, subject, teacher,
                         f'ציון חריג — ייתכן שגיאת הקלדה',
                         f'ציון {label} = {int(score)}')
