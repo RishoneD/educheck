@@ -34,7 +34,7 @@ def find_bank_code_by_text(bank_text: str, bank_rules: dict) -> int | None:
     if not bank_text or not bank_rules:
         return None
     text = bank_text.strip()
-    best_code, best_ratio = None, 0.0
+    best_code, best_ratio, best_len = None, 0.0, 0
     for code, rule in bank_rules.items():
         rule_text = str(rule.get('text', '')).strip()
         if not rule_text or rule_text.startswith('*'):
@@ -48,9 +48,11 @@ def find_bank_code_by_text(bank_text: str, bank_rules: dict) -> int | None:
         full_ratio = difflib.SequenceMatcher(None, text, rule_text).ratio()
 
         ratio = max(prefix_ratio, full_ratio)
-        if ratio > best_ratio:
+        # בציון שווה — מעדיפים את הכלל הארוך יותר (ספציפי יותר, כמו קוד 69 על פני 30)
+        if ratio > best_ratio or (ratio == best_ratio and len(rule_text) > best_len):
             best_ratio = ratio
             best_code = code
+            best_len = len(rule_text)
     return best_code if best_ratio >= 0.75 else None
 
 

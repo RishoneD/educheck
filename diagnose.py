@@ -49,10 +49,10 @@ def main():
     subjects_out = tsv_path.parent / f"diagnose_{tsv_path.stem}_subjects.csv"
     with open(subjects_out, 'w', newline='', encoding='utf-8-sig') as f:
         w = csv.writer(f)
-        w.writerow(['אינדקס', 'מקצוע', 'מורה', 'יש_א', 'יש_ב', 'col_key'])
+        w.writerow(['מקצוע', 'מורה', 'יש_א', 'יש_ב', 'col_key'])
         for s in subjects:
             has_a, has_b = col_semesters.get(s['col_key'], (False, False))
-            w.writerow([s['index'], s['name'], s['teacher'],
+            w.writerow([s['name'], s['teacher'],
                         'כן' if has_a else 'לא',
                         'כן' if has_b else 'לא',
                         s['col_key']])

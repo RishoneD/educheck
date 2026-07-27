@@ -8,7 +8,7 @@ from core.validators import run_all_validations
 from output.report_builder import render_by_teacher, render_by_student
 from output.excel_export import build_excel_report
 
-APP_VERSION = "0.3"
+APP_VERSION = "0.4"
 TYPE_LABELS = {'semester': 'תקופתי מחצית', 'annual': 'תקופתי שנתי'}
 
 # ── Page config ───────────────────────────────────────────────────────────────
