@@ -95,57 +95,78 @@ def detect_file_type(df: pd.DataFrame) -> str | None:
 
 
 def get_active_subjects(df: pd.DataFrame) -> list[dict]:
-    """מחזיר רשימת מקצועות פעילים: [{index, name, teacher, col_key}].
+    """מחזיר רשימת מקצועות ייחודיים ע"י סריקת כל שורות הקובץ.
 
-    col_key מפורמט כ-'שם  מורה  [i]' כך ש-parse_col_header יחלץ אותו נכון.
+    בניגוד לגישה הקודמת שלקחה רק את השורה הראשונה — כאן סורקים את כל התלמידים
+    כי יכולים להיות מקצועות ומורים שונים לתלמידים שונים באותה עמודת אינדקס.
+    col_key = 'שם  מורה' (ללא אינדקס — המפתח הלוגי הוא שם+מורה).
     """
-    subjects = []
+    seen: dict = {}
     i = 1
-    while True:
-        subj_col = f'מקצוע{i}'
-        if subj_col not in df.columns:
-            break
-        if df[subj_col].notna().any():
-            name    = str(df[subj_col].dropna().iloc[0]).strip()
+    while f'מקצוע{i}' in df.columns:
+        for _, row in df.iterrows():
+            name = str(row.get(f'מקצוע{i}') or '').strip()
+            if not name or name == 'nan':
+                continue
             teacher = ''
-            tcol    = f'מורה{i}'
-            if tcol in df.columns and df[tcol].notna().any():
-                teacher = str(df[tcol].dropna().iloc[0]).strip()
-            col_key = f'{name}  {teacher}  [{i}]'
-            subjects.append({'index': i, 'name': name, 'teacher': teacher, 'col_key': col_key})
+            tcol = f'מורה{i}'
+            if tcol in df.columns:
+                t = str(row.get(tcol) or '').strip()
+                if t and t != 'nan':
+                    teacher = t
+            key = (name, teacher)
+            if key not in seen:
+                seen[key] = {'name': name, 'teacher': teacher,
+                             'col_key': f'{name}  {teacher}'}
         i += 1
-    return subjects
+    return list(seen.values())
 
 
 def build_students_tsv(df: pd.DataFrame, subjects: list[dict],
                        file_type: str, bank_rules: dict | None = None) -> tuple[dict, dict]:
     """בונה students ו-col_semesters מ-DataFrame TSV.
 
-    students[שם_תלמיד][col_key] = {sem_a, sem_b, annual, bank}
-    col_semesters[col_key] = (has_a, has_b)
+    גישה תלמיד-מרכזית: לכל תלמיד קוראים את המקצוע/המורה שלו עצמו בכל עמודה.
+    כך מטופלים: מקצועות שונים לתלמידים שונים באותו אינדקס, וכמה מורים לאותו מקצוע.
+
+    col_key = 'שם_מקצוע  מורה'  (ללא אינדקס)
+    col_semesters[col_key] = (has_a, has_b)  — מצטבר מכל התלמידים
     """
-    students: dict     = {}
+    students: dict      = {}
     col_semesters: dict = {}
 
-    for subj in subjects:
-        idx     = subj['index']
-        col_key = subj['col_key']
-        has_a   = False
-        has_b   = False
+    max_i = 0
+    while f'מקצוע{max_i + 1}' in df.columns:
+        max_i += 1
 
-        for _, row in df.iterrows():
-            student = str(row.get('שם_תלמיד', '') or '').strip()
-            if not student or student == 'nan':
+    for _, row in df.iterrows():
+        student = str(row.get('שם_תלמיד', '') or '').strip()
+        if not student or student == 'nan':
+            continue
+        if student not in students:
+            students[student] = {}
+
+        for i in range(1, max_i + 1):
+            subj_name = str(row.get(f'מקצוע{i}') or '').strip()
+            if not subj_name or subj_name == 'nan':
                 continue
-            if student not in students:
-                students[student] = {}
 
+            teacher = ''
+            tcol = f'מורה{i}'
+            if tcol in df.columns:
+                t = str(row.get(tcol) or '').strip()
+                if t and t != 'nan':
+                    teacher = t
+
+            col_key = f'{subj_name}  {teacher}'
             data: dict = {}
+            has_a = False
+            has_b = False
 
             # מחצית א'
             for j in range(1, 8):
-                nc = f'ציון_שם{idx}_{j}'
-                vc = f'ציון{idx}_{j}'
+                nc = f'ציון_שם{i}_{j}'
+                vc = f'ציון{i}_{j}'
                 if nc not in df.columns:
                     break
                 shem = str(row.get(nc) or '')
@@ -161,11 +182,11 @@ def build_students_tsv(df: pd.DataFrame, subjects: list[dict],
                     if pd.notna(val):
                         data['bank_a'] = inject_bank_code(str(val).strip(), bank_rules or {})
 
-            # מחצית ב' + שנתי (שנתי בלבד)
+            # מחצית ב' + שנתי
             if file_type == 'annual':
                 for j in range(1, 8):
-                    nc = f'ב_ציון_שם{idx}_{j}'
-                    vc = f'ב_ציון{idx}_{j}'
+                    nc = f'ב_ציון_שם{i}_{j}'
+                    vc = f'ב_ציון{i}_{j}'
                     if nc not in df.columns:
                         break
                     shem = str(row.get(nc) or '')
@@ -181,7 +202,7 @@ def build_students_tsv(df: pd.DataFrame, subjects: list[dict],
                         if pd.notna(val):
                             data['bank_b'] = inject_bank_code(str(val).strip(), bank_rules or {})
 
-                ac = f'ג_ציון{idx}_1'
+                ac = f'ג_ציון{i}_1'
                 if ac in df.columns:
                     val = row.get(ac)
                     if pd.notna(val):
@@ -190,11 +211,11 @@ def build_students_tsv(df: pd.DataFrame, subjects: list[dict],
                         except (ValueError, TypeError):
                             pass
 
-            # הערת בנק רלוונטית לולידציה
             data['bank'] = data.get('bank_b' if file_type == 'annual' else 'bank_a')
-
             students[student][col_key] = data
 
-        col_semesters[col_key] = (has_a, has_b)
+            # עדכון has_a/has_b מצטבר לכל תלמידי המקצוע
+            prev_a, prev_b = col_semesters.get(col_key, (False, False))
+            col_semesters[col_key] = (prev_a or has_a, prev_b or has_b)
 
     return students, col_semesters

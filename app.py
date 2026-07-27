@@ -329,9 +329,8 @@ def _screen_setup():
             students, col_semesters = build_students_tsv(
                 cache['df'], cache['subjects'], cache['detected'], bank_rules
             )
-            col_keys = [s['col_key'] for s in cache['subjects']]
             findings = run_all_validations(
-                students, col_keys, col_semesters, cache['detected'], bank_rules
+                students, [], col_semesters, cache['detected'], bank_rules
             )
             excel_bytes = build_excel_report(findings, cache['class_name'])
 
