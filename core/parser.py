@@ -68,18 +68,39 @@ def inject_bank_code(bank_text: str, bank_rules: dict) -> str:
 
 # ── TSV (מאשב) ────────────────────────────────────────────────────────────────
 
+_GRADE_HEBREW = {
+    '10': "י'", '11': 'י"א', '12': 'י"ב',
+    "י'": "י'", 'י"א': 'י"א', 'י"ב': 'י"ב',
+}
+
+
+def _col_val(df: pd.DataFrame, col: str) -> str:
+    """מחזיר את הערך הראשון הלא-ריק של עמודה, או ''."""
+    if col in df.columns and df[col].notna().any():
+        v = str(df[col].dropna().iloc[0]).strip()
+        return v if v not in ('', 'nan') else ''
+    return ''
+
+
 def parse_tsv(file_bytes: bytes) -> tuple[pd.DataFrame, str]:
-    """קורא קובץ TSV ממאשב ומחזיר (DataFrame, שם כיתה)."""
+    """קורא קובץ TSV ממאשב ומחזיר (DataFrame, שם כיתה מלא).
+
+    מנסה לשלב שכבה (י'/י"א/י"ב) עם מספר הכיתה לתצוגה נוחה כגון 'י" א 4'.
+    """
     df = pd.read_csv(io.BytesIO(file_bytes), sep='\t', encoding='utf-8-sig', dtype=str)
     df = df.dropna(how='all').reset_index(drop=True)
 
-    class_name = 'לא ידוע'
-    for col_candidate in ('כיתה', 'שכבה', 'כיתה_שם'):
-        if col_candidate in df.columns and df[col_candidate].notna().any():
-            val = str(df[col_candidate].dropna().iloc[0]).strip()
-            if val and val not in ('nan', ''):
-                class_name = val
-                break
+    grade   = _GRADE_HEBREW.get(_col_val(df, 'שכבה'), '')
+    kita    = _col_val(df, 'כיתה') or _col_val(df, 'כיתה_שם')
+
+    if grade and kita:
+        class_name = f'{grade} {kita}'
+    elif grade:
+        class_name = grade
+    elif kita:
+        class_name = kita
+    else:
+        class_name = 'לא ידוע'
 
     return df, class_name
 
