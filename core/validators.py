@@ -126,7 +126,7 @@ def _validate_bank_note(bank_val, data, sem_a, sem_b, has_a, has_b,
 
     # קוד 111+ — תכניות בית ספר
     if code >= 111:
-        add_fn('⚠️', 'בדוק התאמה לסוג תעודה (תכנית בית ספר)', lbl)
+        add_fn('⚠️', 'בדקו התאמה לסוג תעודה (תכנית בית ספר)', lbl)
         return
 
     rule = rules.get(code)
