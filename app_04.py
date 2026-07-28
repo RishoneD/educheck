@@ -1,5 +1,3 @@
-import base64
-import pathlib
 import streamlit as st
 import streamlit.components.v1 as components
 
@@ -10,35 +8,15 @@ from core.validators import run_all_validations
 from output.report_builder import render_by_teacher, render_by_student
 from output.excel_export import build_excel_report
 
-APP_VERSION = "0.5"
+APP_VERSION = "0.4"
 TYPE_LABELS = {'semester': 'תקופתי מחצית', 'annual': 'תקופתי שנתי'}
 
-GUIDE_STEPS = [
-    {
-        'title': 'שלב 1: כנסו לעמוד של "הפקת תעודות/ימי הורים"',
-        'image': 'data/guide/step1.png',
-    },
-    {
-        'title': 'שלב 2: בחרו את הכיתה שלכם',
-        'image': 'data/guide/step2.png',
-    },
-    {
-        'title': "שלב 3: בחרו את התעודה הרצויה (מחצית א' או מחצית ב')",
-        'image': 'data/guide/step3.png',
-    },
-    {
-        'title': 'שלב 4: בסוג הקובץ, בחרו "מקור נתונים"',
-        'image': 'data/guide/step4.png',
-    },
-    {
-        'title': 'שלב 5: הפיקו דוח לכל הכיתה',
-        'image': 'data/guide/step5.png',
-    },
-]
-
 # ── Page config ───────────────────────────────────────────────────────────────
-st.set_page_config(page_title='Gradify Dev', page_icon='📋', layout='wide')
+st.set_page_config(page_title='Gradify', page_icon='📋', layout='wide')
 
+# ── CSS injection via same-origin iframe ─────────────────────────────────────
+# Streamlit 1.38+ strips <style> from st.markdown; components.html is same-origin
+# so window.parent.document is accessible.
 _CSS = """
 @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&display=swap');
 
@@ -164,146 +142,15 @@ div[data-testid="stRadio"] label:has(input:checked) {
     background: #f4f6f3 !important;
     color: #243029 !important;
 }
-
 """
-
-def _build_guide_overlay() -> str:
-    """בונה HTML מלא של overlay מדריך עם תמונות base64 ו-JS ניווט."""
-    steps_html = ''
-    for idx, step in enumerate(GUIDE_STEPS):
-        img_path = pathlib.Path(step['image'])
-        b64 = base64.b64encode(img_path.read_bytes()).decode() if img_path.exists() else ''
-        img_tag = (
-            f'<img src="data:image/png;base64,{b64}" style="max-width:100%;max-height:100%;object-fit:contain;" />'
-            if b64 else '<span style="color:#9aa69e;">תמונה לא נמצאה</span>'
-        )
-        display = 'flex' if idx == 0 else 'none'
-        steps_html += (
-            f'<div class="gd-step" id="gd-step-{idx}" '
-            f'style="display:{display};flex-direction:column;gap:14px;">'
-            f'<div style="font-size:16px;font-weight:800;color:#243029;direction:rtl;'
-            f'padding:10px 14px;background:#f0f6fb;border-right:4px solid #15876a;'
-            f'border-radius:0 8px 8px 0;">{step["title"]}</div>'
-            f'<div style="width:100%;height:340px;display:flex;align-items:center;'
-            f'justify-content:center;background:#f8faf8;border:1px solid #e3e8e2;'
-            f'border-radius:10px;overflow:hidden;">{img_tag}</div>'
-            f'</div>'
-        )
-
-    total = len(GUIDE_STEPS)
-    nav_btn = (
-        'background:#fff;border:1px solid #e3e8e2;border-radius:9px;'
-        'padding:8px 22px;font-size:20px;cursor:pointer;font-family:Heebo,sans-serif;'
-        'color:#243029;line-height:1;'
-    )
-    overlay_html = (
-        f'<div id="gradify-guide-overlay" style="display:none;position:fixed;top:0;left:0;'
-        f'width:100%;height:100%;background:rgba(0,0,0,0.55);z-index:99999;'
-        f'align-items:center;justify-content:center;">'
-        f'  <div style="background:#fff;width:92vw;max-height:92vh;border-radius:14px;'
-        f'display:flex;flex-direction:column;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,.2);">'
-        f'    <div style="padding:16px 20px;border-bottom:1px solid #e3e8e2;display:flex;'
-        f'align-items:center;justify-content:space-between;direction:rtl;flex-shrink:0;">'
-        f'      <span style="font-weight:800;font-size:17px;font-family:Heebo,sans-serif;color:#243029;">'
-        f'📖 מדריך — כיצד להפיק קובץ ממאשב</span>'
-        f'      <button onclick="gradifyGuideClose()" style="background:none;border:none;'
-        f'cursor:pointer;font-size:22px;color:#6f7d74;line-height:1;padding:2px 6px;">✕</button>'
-        f'    </div>'
-        f'    <div style="flex:1;overflow-y:auto;padding:20px 24px;">{steps_html}</div>'
-        f'    <div style="padding:14px 20px;border-top:1px solid #e3e8e2;display:flex;'
-        f'align-items:center;justify-content:center;gap:24px;flex-shrink:0;">'
-        f'      <button id="gd-btn-prev" onclick="gradifyGuideNav(-1)" style="{nav_btn}">→</button>'
-        f'      <span id="gd-indicator" style="font-size:13px;color:#6f7d74;font-weight:600;'
-        f'font-family:Heebo,sans-serif;">{total} / 1</span>'
-        f'      <button id="gd-btn-next" onclick="gradifyGuideNav(1)" style="{nav_btn}">←</button>'
-        f'    </div>'
-        f'  </div>'
-        f'</div>'
-    )
-    return overlay_html
-
-
-_GUIDE_OVERLAY_HTML = _build_guide_overlay()
-_TOTAL_STEPS = len(GUIDE_STEPS)
 
 components.html(
     "<script>"
-    # ── CSS ──
     "var s=window.parent.document.getElementById('gradify-css')"
     "||window.parent.document.createElement('style');"
     "s.id='gradify-css';"
     "s.textContent=" + repr(_CSS) + ";"
     "if(!s.parentElement)window.parent.document.head.appendChild(s);"
-    # ── Guide link button styling ──
-    "if(!window.parent.document.getElementById('gradify-guide-link-css')){"
-    "  var ls=window.parent.document.createElement('style');"
-    "  ls.id='gradify-guide-link-css';"
-    "  ls.textContent='button.gradify-guide-link{background:none!important;border:none!important;"
-    "box-shadow:none!important;padding:0!important;width:auto!important;color:#2563a8!important;"
-    "font-weight:600!important;font-size:13px!important;text-decoration:underline!important;"
-    "text-underline-offset:3px!important;cursor:pointer!important;}"
-    "button.gradify-guide-link:hover{background:none!important;color:#1a4a8a!important;}"
-    "[data-testid=\"stButton\"]:has(button.gradify-guide-link){text-align:center!important;}';"
-    "  window.parent.document.head.appendChild(ls);"
-    "}"
-    # ── Guide overlay HTML (inject once) ──
-    "if(!window.parent.document.getElementById('gradify-guide-overlay')){"
-    "  var tmp=window.parent.document.createElement('div');"
-    "  tmp.innerHTML=" + repr(_GUIDE_OVERLAY_HTML) + ";"
-    "  window.parent.document.body.appendChild(tmp.firstElementChild);"
-    "}"
-    # ── Guide JS functions on parent ──
-    "if(!window.parent.gradifyGuideOpen){"
-    "  window.parent.gradifyGuideStep=0;"
-    "  window.parent.gradifyGuideTotal=" + str(_TOTAL_STEPS) + ";"
-    "  window.parent.gradifyGuideOpen=function(){"
-    "    var t=window.parent.gradifyGuideTotal;"
-    "    window.parent.gradifyGuideStep=0;"
-    "    window.parent.document.querySelectorAll('.gd-step').forEach(function(el,i){"
-    "      el.style.display=i===0?'flex':'none';"
-    "    });"
-    "    window.parent.document.getElementById('gd-indicator').textContent=t+' / 1';"
-    "    window.parent.document.getElementById('gd-btn-prev').style.visibility='hidden';"
-    "    window.parent.document.getElementById('gd-btn-next').style.visibility=t>1?'visible':'hidden';"
-    "    window.parent.document.getElementById('gradify-guide-overlay').style.display='flex';"
-    "  };"
-    "  window.parent.gradifyGuideClose=function(){"
-    "    window.parent.document.getElementById('gradify-guide-overlay').style.display='none';"
-    "  };"
-    "  window.parent.gradifyGuideNav=function(dir){"
-    "    var step=window.parent.gradifyGuideStep;"
-    "    var t=window.parent.gradifyGuideTotal;"
-    "    var next=Math.max(0,Math.min(t-1,step+dir));"
-    "    if(next===step)return;"
-    "    window.parent.document.getElementById('gd-step-'+step).style.display='none';"
-    "    window.parent.document.getElementById('gd-step-'+next).style.display='flex';"
-    "    window.parent.gradifyGuideStep=next;"
-    "    window.parent.document.getElementById('gd-indicator').textContent=t+' / '+(next+1);"
-    "    window.parent.document.getElementById('gd-btn-prev').style.visibility=next>0?'visible':'hidden';"
-    "    window.parent.document.getElementById('gd-btn-next').style.visibility=next<t-1?'visible':'hidden';"
-    "  };"
-    # expose to iframe scope too (onclick handlers use window scope)
-    "  window.gradifyGuideClose=window.parent.gradifyGuideClose;"
-    "  window.gradifyGuideNav=window.parent.gradifyGuideNav;"
-    "}"
-    # ── Wire guide link button ──
-    "function wireGuideBtn(){"
-    "  window.parent.document.querySelectorAll('button').forEach(function(b){"
-    "    if(b.textContent.trim().startsWith('לא יודעים')){"
-    "      b.classList.add('gradify-guide-link');"
-    "      if(!b.dataset.guideWired){"
-    "        b.dataset.guideWired='1';"
-    "        b.addEventListener('click',function(e){"
-    "          e.preventDefault();e.stopPropagation();"
-    "          window.parent.gradifyGuideOpen();"
-    "        },true);"  # capture phase — fires before Streamlit handler
-    "      }"
-    "    }"
-    "  });"
-    "}"
-    "var obs=new MutationObserver(wireGuideBtn);"
-    "obs.observe(window.parent.document.body,{childList:true,subtree:true});"
-    "wireGuideBtn();"
     "</script>",
     height=0,
     scrolling=False,
@@ -332,8 +179,6 @@ for _k, _v in {
 }.items():
     if _k not in st.session_state:
         st.session_state[_k] = _v
-
-
 
 
 # ── Header ────────────────────────────────────────────────────────────────────
@@ -379,6 +224,7 @@ def _card_end():
 # SETUP SCREEN
 # ─────────────────────────────────────────────────────────────────────────────
 def _screen_setup():
+    # Welcome
     st.markdown(
         '<h1 style="font-size:25px;font-weight:800;margin:0 0 6px;'
         'letter-spacing:-0.4px;color:#243029;">שלום, בואו נבדוק את התעודות 👋</h1>'
@@ -387,6 +233,7 @@ def _screen_setup():
         unsafe_allow_html=True,
     )
 
+    # Step 1 — report type
     _step_card(1, 'איזה סוג דוח אתם בודקים?')
     st.radio(
         label='סוג',
@@ -399,18 +246,27 @@ def _screen_setup():
     )
     _card_end()
 
+    # Step 2 — upload
     _step_card(2, 'העלאת קובץ מקור נתונים')
     uploaded = st.file_uploader(
         label='קובץ TSV',
         type=['txt', 'tsv', 'csv'],
         label_visibility='collapsed',
     )
-    st.button('לא יודעים איך להפיק את הקובץ מהמערכת? כך עושים זאת ›', key='guide_link_btn')
+    st.markdown(
+        '<div style="text-align:center;margin-top:10px;">'
+        '<span style="color:#2563a8;font-weight:600;font-size:13px;'
+        'text-decoration:underline;text-underline-offset:3px;">'
+        'לא יודעים איך להפיק את הקובץ מהמערכת? כך עושים זאת ›'
+        '</span></div>',
+        unsafe_allow_html=True,
+    )
     _card_end()
 
     if uploaded is None:
         return
 
+    # Parse file
     file_bytes = uploaded.read()
     try:
         df, class_name = parse_tsv(file_bytes)
@@ -440,6 +296,7 @@ def _screen_setup():
         'num_teachers': len(teachers), 'detected': detected,
     }
 
+    # Step 3 — confirmation
     st.markdown(
         f'<div style="background:#fff;border:1px solid #e3e8e2;border-radius:16px;'
         f'padding:22px 24px;margin-bottom:22px;">'
@@ -461,6 +318,7 @@ def _screen_setup():
         unsafe_allow_html=True,
     )
 
+    # Run button
     if st.button('🔍 הרץ בדיקה', type='primary', use_container_width=True):
         cache = st.session_state.upload_cache
         with st.spinner('בודק את הציונים…'):
@@ -497,6 +355,7 @@ def _screen_results():
     total_cells = (cache.get('num_students', 1) or 1) * (cache.get('num_subjects', 1) or 1)
     pct         = max(0, min(100, int((1 - (errors + warnings) / max(errors + warnings, total_cells)) * 100)))
 
+    # Header row
     col_title, col_dl = st.columns([3, 1])
     with col_title:
         subtitle = 'נמצאו נושאים שדורשים את תשומת לבכם' if findings else 'הכל תקין ✅'
@@ -517,6 +376,7 @@ def _screen_results():
                 mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             )
 
+    # 3 summary cards
     st.markdown(
         f'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:13px;margin-bottom:14px;">'
         f'<div style="background:#fcebeb;border:1px solid #f3c9c9;border-radius:14px;padding:18px 20px;">'
@@ -535,6 +395,7 @@ def _screen_results():
         unsafe_allow_html=True,
     )
 
+    # Validity bar
     st.markdown(
         f'<div style="background:#fff;border:1px solid #e3e8e2;border-radius:14px;'
         f'padding:15px 20px;margin-bottom:22px;display:flex;align-items:center;gap:16px;">'

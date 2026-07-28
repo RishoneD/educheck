@@ -48,7 +48,8 @@ def run_all_validations(students: dict, active_cols: list[str],
 
     for student, subjects in students.items():
         for col, data in subjects.items():
-            subject, teacher, _ = parse_col_header(col)
+            subject = data.get('subject') or parse_col_header(col)[0]
+            teacher = data.get('teacher', '') if 'teacher' in data else parse_col_header(col)[1]
             has_a, has_b = col_semesters.get(col, (False, False))
 
             sem_a  = _safe_num(data.get('sem_a'))

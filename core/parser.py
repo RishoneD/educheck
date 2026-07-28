@@ -71,6 +71,7 @@ def inject_bank_code(bank_text: str, bank_rules: dict) -> str:
 _GRADE_HEBREW = {
     '10': "י'", '11': 'י"א', '12': 'י"ב',
     "י'": "י'", 'י"א': 'י"א', 'י"ב': 'י"ב',
+    'י': "י'", 'יא': 'י"א', 'יב': 'י"ב',
 }
 
 
@@ -182,7 +183,7 @@ def build_students_tsv(df: pd.DataFrame, subjects: list[dict],
                     teacher = t
 
             col_key = f'{subj_name}  {teacher}'
-            data: dict = {}
+            data: dict = {'subject': subj_name, 'teacher': teacher}
             has_a = False
             has_b = False
 
