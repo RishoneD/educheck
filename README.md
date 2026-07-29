@@ -1,6 +1,6 @@
 # Gradify — בדיקת תקינות ציונים תקופתיים
 
-https://gradify-1.streamlit.app/
+> גרסת הענן (gradify-1.streamlit.app) מוקפאת ב-v0.5 — הפיתוח הפעיל הוא EXE בלבד.
 
 ---
 

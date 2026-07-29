@@ -10,7 +10,11 @@ from core.validators import run_all_validations
 from output.report_builder import render_by_teacher, render_by_student
 from output.excel_export import build_excel_report
 
-APP_VERSION = "0.5"
+try:
+    with open(pathlib.Path(__file__).parent / "version.txt") as _f:
+        APP_VERSION = _f.read().strip()
+except Exception:
+    APP_VERSION = "1.0.0"
 TYPE_LABELS = {'semester': 'תקופתי מחצית', 'annual': 'תקופתי שנתי'}
 
 GUIDE_STEPS = [
@@ -37,9 +41,10 @@ GUIDE_STEPS = [
 ]
 
 # ── Page config ───────────────────────────────────────────────────────────────
-st.set_page_config(page_title='Gradify Dev', page_icon='📋', layout='wide')
+st.set_page_config(page_title='Gradify', page_icon='📋', layout='wide')
 
 _CSS = """
+header[data-testid="stHeader"] { display: none !important; }
 @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&display=swap');
 
 html, body, [class*="css"], .stApp {
@@ -510,12 +515,23 @@ def _screen_results():
         )
     with col_dl:
         if findings and st.session_state.excel_bytes:
-            st.download_button(
-                label='⬇ הורד דוח Excel',
-                data=st.session_state.excel_bytes,
-                file_name=f'דוח_ציונים_{class_name}.xlsx',
-                mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            )
+            if st.button('⬇ שמור דוח Excel'):
+                import tkinter as tk
+                from tkinter import filedialog
+                root = tk.Tk()
+                root.withdraw()
+                root.attributes('-topmost', True)
+                safe_name = class_name.replace('"', '').replace("'", '')
+                path = filedialog.asksaveasfilename(
+                    title='שמור דוח Excel',
+                    initialfile=f'דוח_ציונים_{safe_name}.xlsx',
+                    defaultextension='.xlsx',
+                    filetypes=[('Excel', '*.xlsx')],
+                )
+                root.destroy()
+                if path:
+                    pathlib.Path(path).write_bytes(st.session_state.excel_bytes)
+                    st.success(f'נשמר: {path}')
 
     st.markdown(
         f'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:13px;margin-bottom:14px;">'
