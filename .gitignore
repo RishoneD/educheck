@@ -6,3 +6,6 @@ __pycache__/
 tmp_*.txt
 tmp_*.py
 .claude/
+build/
+dist/
+*.docx
