@@ -3,7 +3,7 @@ import sys
 import threading
 import time
 import webview
-from updater import check_and_update, EXE_DIR
+from updater import check_update, EXE_DIR
 
 
 def _get_app_path():
@@ -56,7 +56,7 @@ def _wait_for_streamlit(timeout=30):
 
 
 def main():
-    check_and_update()
+    threading.Thread(target=check_update, daemon=True).start()
 
     app_path = _get_app_path()
     threading.Thread(target=_start_streamlit, args=(app_path,), daemon=True).start()

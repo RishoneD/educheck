@@ -9,3 +9,4 @@ tmp_*.py
 build/
 dist/
 *.docx
+feedback_config.py

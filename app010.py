@@ -15,7 +15,7 @@ try:
     with open(pathlib.Path(__file__).parent / "version.txt") as _f:
         APP_VERSION = _f.read().strip()
 except Exception:
-    APP_VERSION = "1.1"
+    APP_VERSION = "1.0.0"
 
 TYPE_LABELS = {'semester': 'תקופתי מחצית', 'annual': 'תקופתי שנתי'}
 

@@ -12,6 +12,8 @@ a = Analysis(
         ("core", "core"),
         ("output", "output"),
         (".streamlit", ".streamlit"),
+        ("feedback_config.py", "."),
+        ("core/name_detector", "core/name_detector"),
     ],
     hiddenimports=[
         "streamlit", "pandas", "openpyxl",
@@ -30,4 +32,5 @@ exe = EXE(
     name="Gradify",
     debug=False,
     console=False,
+    icon="Gradify App Icon Design/exports/gradify-icon.ico",
 )
