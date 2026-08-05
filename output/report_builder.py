@@ -30,7 +30,7 @@ def _finding_row(f: dict) -> str:
                 border-radius:10px; padding:11px 14px; margin:5px 0; direction:rtl;">
       <span style="font-size:15px; line-height:1.4; flex-shrink:0;">{sev}</span>
       <div style="line-height:1.5;">
-        <span style="font-weight:700; font-size:14px; color:#243029;">{f['student']}</span>
+        <span class="gradify-sname" style="font-weight:700; font-size:14px; color:#243029;">{f['student']}</span>
         <span style="font-size:14px; color:{text_color};"> — {f['message']}</span>
         {det_html}
       </div>

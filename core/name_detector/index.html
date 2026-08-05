@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"></head>
+<body>
+<script>
+(function () {
+  window.parent.postMessage(
+    { isStreamlitMessage: true, type: 'streamlit:componentReady', apiVersion: 1 },
+    '*'
+  );
+  window.parent.postMessage(
+    { isStreamlitMessage: true, type: 'streamlit:setFrameHeight', height: 0 },
+    '*'
+  );
+
+  window.addEventListener('message', function (e) {
+    if (!e.data || e.data.type !== 'streamlit:render') return;
+
+    var names  = (e.data.args && e.data.args.names) || [];
+    var rects  = [];
+    var parent = window.parent;
+
+    // offset: מיקום החלון על המסך + גובה ה-chrome (toolbar)
+    // לא מוסיפים scrollX/scrollY — getBoundingClientRect מחזיר קואורדינטות viewport
+    // שמתאימות ישירות ל-PIL.ImageGrab (מצלם את מה שמוצג, לא את כל המסמך)
+    var screenOffX = parent.screenX || 0;
+    var screenOffY = (parent.screenY || 0) +
+                     Math.max(0, (parent.outerHeight - parent.innerHeight) || 0);
+
+    function addRect(el) {
+      var r = el.getBoundingClientRect();
+      if (r.width <= 0 || r.height <= 0) return;
+      // אלמנטים מחוץ ל-viewport — לא גלויים בצילום
+      if (r.bottom < 0 || r.top > parent.innerHeight) return;
+      if (r.right  < 0 || r.left > parent.innerWidth)  return;
+      rects.push([
+        Math.round(r.left   + screenOffX),
+        Math.round(r.top    + screenOffY),
+        Math.round(r.right  + screenOffX),
+        Math.round(r.bottom + screenOffY)
+      ]);
+    }
+
+    // 1. ספאנים מתויגים ב-report_builder (.gradify-sname)
+    try {
+      parent.document.querySelectorAll('.gradify-sname').forEach(addRect);
+    } catch (e1) {}
+
+    // 2. כותרות expander שמכילות שמות מוכרים (תצוגת לפי תלמיד)
+    try {
+      parent.document.querySelectorAll('[data-testid="stExpander"] summary').forEach(function (btn) {
+        var txt = btn.textContent || '';
+        names.forEach(function (name) {
+          if (!name) return;
+          if (txt.indexOf(name) < 0) return;
+          var r = btn.getBoundingClientRect();
+          if (r.bottom < 0 || r.top > parent.innerHeight) return;
+          var approxW = name.length * 13 + 20;
+          rects.push([
+            Math.round(r.right - approxW + screenOffX),
+            Math.round(r.top              + screenOffY),
+            Math.round(r.right            + screenOffX),
+            Math.round(r.bottom           + screenOffY)
+          ]);
+        });
+      });
+    } catch (e2) {}
+
+    window.parent.postMessage(
+      { isStreamlitMessage: true, type: 'streamlit:setComponentValue', value: rects },
+      '*'
+    );
+  });
+})();
+</script>
+</body></html>
